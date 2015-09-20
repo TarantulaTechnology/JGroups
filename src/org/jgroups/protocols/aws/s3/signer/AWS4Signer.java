@@ -1,4 +1,4 @@
-package org.jgroups.protocols.s3;
+package org.jgroups.protocols.aws.s3.signer;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;

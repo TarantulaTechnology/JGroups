@@ -1,4 +1,4 @@
-package org.jgroups.protocols.s3;
+package org.jgroups.protocols.aws.s3;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jgroups.protocols.aws.s3.signer.AWS4Signer;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
