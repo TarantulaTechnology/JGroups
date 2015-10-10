@@ -106,8 +106,6 @@ public class Global {
     public static final int IPV6_SIZE=16;
 
 
-
-
     public static boolean getPropertyAsBoolean(String property, boolean defaultValue) {
         boolean result = defaultValue;
         try{

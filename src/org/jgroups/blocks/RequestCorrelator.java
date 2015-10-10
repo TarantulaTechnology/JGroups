@@ -66,6 +66,9 @@ public class RequestCorrelator {
     /** Whether or not to use async dispatcher */
     protected boolean                                async_dispatching=false;
 
+    // send exceptions back wrapped in an {@link InvocationTargetException}, or not
+    protected boolean                                wrap_exceptions=true;
+
     private final MyProbeHandler                     probe_handler=new MyProbeHandler(requests);
 
     protected static final Log                       log=LogFactory.getLog(RequestCorrelator.class);
@@ -109,10 +112,12 @@ public class RequestCorrelator {
 
 
 
-    public RpcDispatcher.Marshaller getMarshaller() {return marshaller;}
+    public RpcDispatcher.Marshaller getMarshaller()                {return marshaller;}
     public void                     setMarshaller(RpcDispatcher.Marshaller marshaller) {this.marshaller=marshaller;}
-    public boolean                  asyncDispatching() {return async_dispatching;}
+    public boolean                  asyncDispatching()             {return async_dispatching;}
     public RequestCorrelator        asyncDispatching(boolean flag) {async_dispatching=flag; return this;}
+    public boolean                  wrapExceptions()               {return wrap_exceptions;}
+    public RequestCorrelator        wrapExceptions(boolean flag)   {wrap_exceptions=flag; return this;}
 
     public void sendRequest(long id, List<Address> dest_mbrs, Message msg, RspCollector coll) throws Exception {
         sendRequest(id, dest_mbrs, msg, coll, new RequestOptions().setAnycasting(false));
@@ -461,7 +466,7 @@ public class RequestCorrelator {
             }
             catch(Throwable t) {
                 if(rsp != null)
-                    rsp.send(new InvocationTargetException(t), true);
+                    rsp.send(wrap_exceptions ? new InvocationTargetException(t) : t, true);
                 else
                     log.error(local_addr + ": failed dispatching request asynchronously: " + t);
             }
@@ -473,7 +478,7 @@ public class RequestCorrelator {
         }
         catch(Throwable t) {
             threw_exception=true;
-            retval=new InvocationTargetException(t);
+            retval=wrap_exceptions ? new InvocationTargetException(t) : t;
         }
         if(hdr.rsp_expected)
             sendReply(req, hdr.id, retval, threw_exception);
