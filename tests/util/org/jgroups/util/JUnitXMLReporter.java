@@ -1,4 +1,4 @@
-package tests.util.org.jgroups.util;
+package org.jgroups.util;
 
 import org.jgroups.util.*;
 

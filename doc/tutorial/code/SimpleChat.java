@@ -1,4 +1,3 @@
-package doc.tutorial.code;
 
 import org.jgroups.JChannel;
 import org.jgroups.Message;
