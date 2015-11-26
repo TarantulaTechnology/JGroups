@@ -165,6 +165,7 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
 
     @Property(name="oob_thread_pool.enabled",description="Switch for enabling thread pool for OOB messages. " +
             "Default=true",writable=false)
+    @Deprecated
     protected boolean oob_thread_pool_enabled=true;
 
     @Property(name="oob_thread_pool.min_threads",description="Minimum thread pool size for the OOB thread pool")
@@ -196,6 +197,7 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
     protected long thread_pool_keep_alive_time=30000;
 
     @Property(name="thread_pool.enabled",description="Switch for enabling thread pool for regular messages")
+    @Deprecated
     protected boolean thread_pool_enabled=true;
 
     @Property(name="thread_pool.queue_enabled", description="Queue to enqueue incoming regular messages")
@@ -212,6 +214,7 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
 
     @Property(name="internal_thread_pool.enabled",description="Switch for enabling thread pool for internal messages",
               writable=false)
+    @Deprecated
     protected boolean internal_thread_pool_enabled=true;
 
     @Property(name="internal_thread_pool.min_threads",description="Minimum thread pool size for the internal thread pool")
@@ -831,7 +834,8 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
 
     public void setTimerThreadFactory(ThreadFactory factory) {
         timer_thread_factory=factory;
-        timer.setThreadFactory(factory);
+        if(timer != null)
+            timer.setThreadFactory(factory);
     }
 
     public TimeScheduler getTimer() {return timer;}
@@ -1295,7 +1299,7 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
             startDiagnostics();
         }
         catch(Exception e) {
-            log.error("failed starting diagnostics", e);
+            log.error(Util.getMessage("FailedStartingDiagnostics"), e);
         }
     }
 
@@ -1689,7 +1693,7 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
         Executor pool=pickThreadPool(oob, internal);
 
         try {
-            if(!copy_buffer || pool instanceof DirectExecutor)
+            if(!copy_buffer) // e.g. with TCP which creates a new buffer for each msg
                 pool.execute(new MyHandler(sender, data, offset, length)); // we don't make a copy if we execute on this thread
             else {
                 byte[] tmp=new byte[length];
@@ -2630,7 +2634,6 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
      * messages immediately when no other messages are available. https://issues.jboss.org/browse/JGRP-1540
      */
     protected class TransferQueueBundler extends BaseBundler implements Runnable {
-        protected final        int                    threshold;
         protected final        BlockingQueue<Message> queue;
         protected volatile     Thread                 bundler_thread;
         protected static final String                 THREAD_NAME="TransferQueueBundler";
@@ -2640,7 +2643,6 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
             if(capacity <=0) throw new IllegalArgumentException("bundler capacity cannot be " + capacity);
             queue=new LinkedBlockingQueue<>(capacity);
             // buffer=new ConcurrentLinkedBlockingQueue2<Message>(capacity);
-            threshold=(int)(capacity * .9); // 90% of capacity
         }
 
         public Thread getThread()     {return bundler_thread;}
@@ -2679,13 +2681,13 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
                         if(msg == null)
                             continue;
                         long size=msg.size();
-                        if(count + size >= max_bundle_size || queue.size() >= threshold)
+                        if(count + size >= max_bundle_size)
                             sendBundledMessages();
                         addMessage(msg, size);
                     }
                     while(null != (msg=queue.poll())) {
                         long size=msg.size();
-                        if(count + size >= max_bundle_size || queue.size() >= threshold)
+                        if(count + size >= max_bundle_size)
                             sendBundledMessages();
                         addMessage(msg, size);
                     }

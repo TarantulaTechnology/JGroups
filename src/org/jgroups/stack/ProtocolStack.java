@@ -95,7 +95,7 @@ public class ProtocolStack extends Protocol {
                                     log.debug("removed protocol " + prot_name + " from stack");
                             }
                             catch(Exception e) {
-                                log.error("failed removing protocol " + prot_name, e);
+                                log.error(Util.getMessage("FailedRemovingProtocol") + prot_name, e);
                             }
                         }
                     }
@@ -118,7 +118,7 @@ public class ProtocolStack extends Protocol {
                         //prot.start();
                     }
                     catch(Exception e) {
-                        log.error("failed creating an instance of " + prot_name, e);
+                        log.error(Util.getMessage("FailedCreatingAnInstanceOf") + prot_name, e);
                         break;
                     }
 
@@ -141,7 +141,7 @@ public class ProtocolStack extends Protocol {
                     String neighbor_prot=key.trim();
                     Protocol neighbor=findProtocol(neighbor_prot);
                     if(neighbor == null) {
-                        log.error("Neighbor protocol " + neighbor_prot + " not found in stack");
+                        log.error(Util.getMessage("NeighborProtocol") + neighbor_prot + " not found in stack");
                         break;
                     }
                     int position=tmp.equalsIgnoreCase("above")? ABOVE : BELOW;
@@ -149,15 +149,16 @@ public class ProtocolStack extends Protocol {
                         insertProtocol(prot, position, neighbor.getClass());
                     }
                     catch(Exception e) {
-                        log.error("failed inserting protocol " + prot_name + " " + tmp + " " + neighbor_prot, e);
+                        log.error(Util.getMessage("FailedInsertingProtocol") + prot_name + " " + tmp + " " + neighbor_prot, e);
                     }
 
                     try {
+                        callAfterCreationHook(prot, afterCreationHook());
                         prot.init();
                         prot.start();
                     }
                     catch(Exception e) {
-                        log.error("failed creating an instance of " + prot_name, e);
+                        log.error(Util.getMessage("FailedCreatingAnInstanceOf") + prot_name, e);
                     }
                 }
             }
@@ -701,13 +702,13 @@ public class ProtocolStack extends Protocol {
             prot.stop();
         }
         catch(Throwable t) {
-            log.error("failed stopping " + prot.getName() + ": " + t);
+            log.error(Util.getMessage("FailedStopping") + prot.getName() + ": " + t);
         }
         try {
             prot.destroy();
         }
         catch(Throwable t) {
-            log.error("failed destroying " + prot.getName() + ": " + t);
+            log.error(Util.getMessage("FailedDestroying") + prot.getName() + ": " + t);
         }
         return prot;
     }
@@ -785,7 +786,7 @@ public class ProtocolStack extends Protocol {
 
         if(new_prot.getUpProtocol() == this)
             top_prot=new_prot;
-
+        callAfterCreationHook(new_prot, afterCreationHook());
         new_prot.init();
     }
 
@@ -852,11 +853,13 @@ public class ProtocolStack extends Protocol {
                             if(num_inits >= 1)
                                 continue;
                         }
+                        callAfterCreationHook(prot, prot.afterCreationHook());
                         prot.init(); // if shared TP, call init() with lock : https://issues.jboss.org/browse/JGRP-1887
                         continue;
                     }
                 }
             }
+            callAfterCreationHook(prot, prot.afterCreationHook());
             prot.init();
         }
     }
@@ -1090,5 +1093,13 @@ public class ProtocolStack extends Protocol {
         }
     }
 
+
+    protected static void callAfterCreationHook(Protocol prot, String classname) throws Exception {
+        if(classname == null || prot == null)
+            return;
+        Class<ProtocolHook> clazz=Util.loadClass(classname, prot.getClass());
+        ProtocolHook hook=clazz.newInstance();
+        hook.afterCreation(prot);
+    }
 
 }

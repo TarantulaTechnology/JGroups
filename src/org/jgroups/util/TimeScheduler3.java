@@ -28,9 +28,9 @@ public class TimeScheduler3 implements TimeScheduler, Runnable {
 
     protected static final Log                        log=LogFactory.getLog(TimeScheduler3.class);
 
-    protected ThreadFactory                           timer_thread_factory=null;
+    protected ThreadFactory                           timer_thread_factory;
 
-    protected static enum TaskType                    {dynamic, fixed_rate, fixed_delay}
+    protected enum TaskType                           {dynamic, fixed_rate, fixed_delay}
 
 
     /**
@@ -151,6 +151,10 @@ public class TimeScheduler3 implements TimeScheduler, Runnable {
         }
         catch(InterruptedException e) {
         }
+
+        // clears the threads list (https://issues.jboss.org/browse/JGRP-1971)
+        if(timer_thread_factory instanceof LazyThreadFactory)
+            ((LazyThreadFactory)timer_thread_factory).destroy();
     }
 
 
@@ -166,7 +170,7 @@ public class TimeScheduler3 implements TimeScheduler, Runnable {
                 // flag is cleared and we check if the loop should be terminated at the top of the loop
             }
             catch(Throwable t) {
-                log.error("failed submitting task to thread pool", t);
+                log.error(Util.getMessage("FailedSubmittingTaskToThreadPool"), t);
             }
         }
     }
@@ -287,7 +291,7 @@ public class TimeScheduler3 implements TimeScheduler, Runnable {
                 runnable.run();
             }
             catch(Throwable t) {
-                log.error("failed executing task " + runnable, t);
+                log.error(Util.getMessage("FailedExecutingTask") + runnable, t);
             }
             finally {
                 done=true;
