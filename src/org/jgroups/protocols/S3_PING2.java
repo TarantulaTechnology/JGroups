@@ -42,12 +42,15 @@ import static java.lang.String.valueOf;
 /**
  * Discovery protocol using Amazon's S3 storage. 
  * The S3 access code reuses the example shipped by Amazon.
- * @author Bela Ban
+ * AWS Version 4 Authentication request authorization is implemented.
+ * @author Bela Ban, Mark Morris
  */
 public class S3_PING2 extends FILE_PING {
 
     /////////////////////////////////////////////////////////////////////////////////
     /////////////////////////////////////////////////////////////////////////////////
+    @Property(description="The name of the AWS region")
+    protected String region;
 
     @Property(description="The name of the AWS server")
     protected String host;
@@ -93,6 +96,10 @@ public class S3_PING2 extends FILE_PING {
     /////////////////////////////////////////////////////////////////////////////////
     {
         super.init();
+        
+        log.error( "My Log test message-error." );
+        //log.setLevel("trace");
+        log.info( "My Log test message-info." );
         
         if( host == null )
         {

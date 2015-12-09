@@ -624,7 +624,8 @@
         <runtest suitename="functional"
                  groups="functional"
                  parallel="${parallel.classes}"
-                 threadcount="5" />
+                 threadcount="5" 
+        	     jvmarg1="-Djgroups.use.jdk_logger=true"/>
     </target>
 
 
@@ -636,7 +637,8 @@
                  parallel="${parallel.classes}"
                  threadcount="1"
                  jvmarg1="-Dorg.jboss.byteman.contrib.bmunit.agent.inhibit=true"
-                 jvmarg2="-javaagent:${lib.dir}/byteman.jar=listener:true">
+                 jvmarg2="-javaagent:${lib.dir}/byteman.jar=listener:true"
+        	     jvmarg3="-Djgroups.use.jdk_logger=true">
         </runtest>
     </target>
 
@@ -647,7 +649,8 @@
         <runtest suitename="stack-independent"
                  groups="stack-independent"
                  parallel="${parallel.classes}"
-                 threadcount="1" />
+                 threadcount="1" 
+        	jvmarg1="-Djgroups.use.jdk_logger=true"/>
     </target>
 
 
@@ -662,6 +665,7 @@
                  initial.mcast.port="25000"
                  initial.tcp.port="25000"
                  jvmarg1="-Dchannel.conf=udp.xml"
+        	jvmarg2="-Djgroups.use.jdk_logger=true"
                 />
     </target>
 
@@ -683,6 +687,7 @@
                  tcp.recv.buf.size="50000"
                  tcp.send.buf.size="10000"
                  jvmarg1="-Dchannel.conf=tcp.xml"
+        	jvmarg2="-Djgroups.use.jdk_logger=true"
                 />
     </target>
 
@@ -704,6 +709,7 @@
                  tcp.recv.buf.size="50000"
                  tcp.send.buf.size="10000"
                  jvmarg1="-Dchannel.conf=tcp-nio.xml"
+        	jvmarg2="-Djgroups.use.jdk_logger=true"
                 />
     </target>
 
@@ -713,7 +719,8 @@
         <runtest suitename="time-sensitive"
                  groups="time-sensitive"
                  parallel="${parallel.classes}"
-                 threadcount="1" />
+                 threadcount="1" 
+        	jvmarg1="-Djgroups.use.jdk_logger=true"/>
     </target>
 
 
@@ -723,7 +730,8 @@
                  groups="base,flush"
                  excludedgroups="stack-independent,stack-dependent,broken"
                  parallel="${parallel.classes}"
-                 threadcount="5"/>
+                 threadcount="5"
+        	jvmarg1="-Djgroups.use.jdk_logger=true"/>
     </target>
 
     <target name="reports" description="Produces the test report">
@@ -759,6 +767,7 @@
         <attribute name="tcp.send.buf.size"  default="64000"/>
         <attribute name="jvmarg1"            default="-Dnonex=1"/>
         <attribute name="jvmarg2"            default="-Dnoney=1"/>
+        <attribute name="jvmarg3"            default="-Djgroups.use.jdk_logger=true"/>
         <!--<element   name="additional-args"    optional="true"/>-->
 
         <sequential>
@@ -789,12 +798,13 @@
                 <sysproperty key="tcp.send_buf_size"  value="@{tcp.send.buf.size}"/>
 
 
+                <jvmarg value="-Djgroups.use.jdk_logger=true"/>
                 <jvmarg value="-Djgroups.bind_addr=${jgroups.bind_addr}"/>
                 <jvmarg value="-Djgroups.udp.ip_ttl=0"/>
                 <jvmarg value="-Djgroups.tcpping.initial_hosts=${jgroups.tcpping.initial_hosts}"/>
                 <jvmarg value="-Djgroups.tunnel.gossip_router_hosts=${jgroups.tunnel.gossip_router_hosts}"/>
                 <jvmarg value="-Dtests.tmp.dir=${tmp.dir}"/>
-                <jvmarg value="-Dlog4j.configuration=file:${conf.dir}/log4j.properties"/>
+                <!--<jvmarg value="-Dlog4j.configuration=file:${conf.dir}/log4j.properties"/>-->
                 <jvmarg value="-Dlog4j.configurationFile=${conf.dir}/log4j2.xml"/>
                 <jvmarg value="-Djava.net.preferIPv4Stack=${java.net.preferIPv4Stack}"/>
                 <jvmarg value="-Djava.net.preferIPv6Addresses=${java.net.preferIPv6Addresses}"/>

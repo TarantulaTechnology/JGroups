@@ -32,6 +32,7 @@ public class LogFactory {
         custom_log_factory=customLogFactoryX;
         USE_JDK_LOGGER=isPropertySet(Global.USE_JDK_LOGGER);
         IS_LOG4J2_AVAILABLE=isAvailable("org.apache.logging.log4j.core.Logger");
+        //IS_LOG4J2_AVAILABLE=false;
     }
 
     public static CustomLogFactory getCustomLogFactory() {

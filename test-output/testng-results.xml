@@ -2,32 +2,32 @@
 <testng-results skipped="0" failed="0" total="5" passed="5">
   <reporter-output>
   </reporter-output>
-  <suite name="Default suite" duration-ms="4326" started-at="2015-10-10T18:47:22Z" finished-at="2015-10-10T18:47:26Z">
+  <suite name="Default suite" duration-ms="4131" started-at="2015-11-28T19:53:30Z" finished-at="2015-11-28T19:53:35Z">
     <groups>
     </groups>
-    <test name="Default test" duration-ms="4326" started-at="2015-10-10T18:47:22Z" finished-at="2015-10-10T18:47:26Z">
+    <test name="Default test" duration-ms="4131" started-at="2015-11-28T19:53:30Z" finished-at="2015-11-28T19:53:35Z">
       <class name="org.jgroups.protocols.aws.s3.AWS_AUTH4Test">
-        <test-method status="PASS" signature="setUp()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@bcab4a5]" name="setUp" is-config="true" duration-ms="15" started-at="2015-10-10T13:47:22Z" finished-at="2015-10-10T13:47:22Z">
+        <test-method status="PASS" signature="setUp()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@5799182a]" name="setUp" is-config="true" duration-ms="15" started-at="2015-11-28T13:53:30Z" finished-at="2015-11-28T13:53:30Z">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- setUp -->
-        <test-method status="PASS" signature="testPutObject()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@bcab4a5]" name="testPutObject" duration-ms="1875" started-at="2015-10-10T13:47:22Z" finished-at="2015-10-10T13:47:24Z">
+        <test-method status="PASS" signature="testPutObject()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@5799182a]" name="testPutObject" duration-ms="1407" started-at="2015-11-28T13:53:30Z" finished-at="2015-11-28T13:53:32Z">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- testPutObject -->
-        <test-method status="PASS" signature="testGetBucketLocation()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@bcab4a5]" name="testGetBucketLocation" duration-ms="848" started-at="2015-10-10T13:47:24Z" depends-on-methods="org.jgroups.protocols.aws.s3.AWS_AUTH4Test.testPutObject" finished-at="2015-10-10T13:47:25Z">
+        <test-method status="PASS" signature="testGetBucketLocation()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@5799182a]" name="testGetBucketLocation" duration-ms="792" started-at="2015-11-28T13:53:32Z" depends-on-methods="org.jgroups.protocols.aws.s3.AWS_AUTH4Test.testPutObject" finished-at="2015-11-28T13:53:33Z">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- testGetBucketLocation -->
-        <test-method status="PASS" signature="testGetObject()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@bcab4a5]" name="testGetObject" duration-ms="235" started-at="2015-10-10T13:47:25Z" depends-on-methods="org.jgroups.protocols.aws.s3.AWS_AUTH4Test.testPutObject" finished-at="2015-10-10T13:47:25Z">
+        <test-method status="PASS" signature="testGetObject()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@5799182a]" name="testGetObject" duration-ms="171" started-at="2015-11-28T13:53:33Z" depends-on-methods="org.jgroups.protocols.aws.s3.AWS_AUTH4Test.testPutObject" finished-at="2015-11-28T13:53:33Z">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- testGetObject -->
-        <test-method status="PASS" signature="testGetPresignedURL()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@bcab4a5]" name="testGetPresignedURL" duration-ms="766" started-at="2015-10-10T13:47:25Z" depends-on-methods="org.jgroups.protocols.aws.s3.AWS_AUTH4Test.testPutObject" finished-at="2015-10-10T13:47:26Z">
+        <test-method status="PASS" signature="testGetPresignedURL()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@5799182a]" name="testGetPresignedURL" duration-ms="750" started-at="2015-11-28T13:53:33Z" depends-on-methods="org.jgroups.protocols.aws.s3.AWS_AUTH4Test.testPutObject" finished-at="2015-11-28T13:53:34Z">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- testGetPresignedURL -->
-        <test-method status="PASS" signature="testGetService()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@bcab4a5]" name="testGetService" duration-ms="532" started-at="2015-10-10T13:47:26Z" depends-on-methods="org.jgroups.protocols.aws.s3.AWS_AUTH4Test.testPutObject" finished-at="2015-10-10T13:47:26Z">
+        <test-method status="PASS" signature="testGetService()[pri:0, instance:org.jgroups.protocols.aws.s3.AWS_AUTH4Test@5799182a]" name="testGetService" duration-ms="953" started-at="2015-11-28T13:53:34Z" depends-on-methods="org.jgroups.protocols.aws.s3.AWS_AUTH4Test.testPutObject" finished-at="2015-11-28T13:53:35Z">
           <reporter-output>
           </reporter-output>
         </test-method> <!-- testGetService -->

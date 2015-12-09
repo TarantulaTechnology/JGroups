@@ -34,6 +34,7 @@ import static java.lang.String.valueOf;
  */
 public class S3_PING extends FILE_PING {
 
+
     @Property(description="The name of the AWS server")
     protected String host;
 
