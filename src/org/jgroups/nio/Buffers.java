@@ -275,5 +275,11 @@ public class Buffers implements Iterable<ByteBuffer> {
                     return bufs[index];
             }
         }
+
+		@Override
+		public void remove() {
+			// TODO Auto-generated method stub
+			
+		}
     }
 }
