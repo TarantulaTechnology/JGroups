@@ -65,7 +65,7 @@ public class Util {
 
     // constants
     public static final int MAX_PORT=65535; // highest port allocatable
-    static boolean resolve_dns=false;
+    @Deprecated  static boolean resolve_dns=false;
 
     private static final Pattern METHOD_NAME_TO_ATTR_NAME_PATTERN=Pattern.compile("[A-Z]+");
     private static final Pattern ATTR_NAME_TO_METHOD_NAME_PATTERN=Pattern.compile("_.");
@@ -81,6 +81,10 @@ public class Util {
      * reduces the amount of log data
      */
     public static int MAX_LIST_PRINT_SIZE=20;
+
+    private static final byte[] TYPE_NULL_ARRAY={0};
+    private static final byte[] TYPE_BOOLEAN_TRUE={TYPE_BOOLEAN, 1};
+    private static final byte[] TYPE_BOOLEAN_FALSE={TYPE_BOOLEAN, 0};
 
     public static final Class<?>[] getUnicastProtocols() {
         return new Class<?>[]{UNICAST.class,UNICAST2.class,UNICAST3.class};
@@ -434,7 +438,7 @@ public class Util {
         View view=ch.getView();
         if(view != null) {
             ViewId vid=view.getViewId();
-            List<Address> members=Arrays.asList(ch.getAddress());
+            List<Address> members=Collections.singletonList(ch.getAddress());
 
             ViewId new_vid=new ViewId(ch.getAddress(),vid.getId() + 1);
             View new_view=new View(new_vid,members);
@@ -477,52 +481,34 @@ public class Util {
 
     public static Object objectFromByteBuffer(byte[] buffer,int offset,int length, ClassLoader loader) throws Exception {
         if(buffer == null) return null;
-        Object retval=null;
-        byte type=buffer[offset];
-
+        byte type=buffer[offset++];
+        length--;
         switch(type) {
-            case TYPE_NULL:
-                return null;
+            case TYPE_NULL:    return null;
             case TYPE_STREAMABLE:
-                DataInput in=new ByteArrayDataInputStream(buffer,offset + 1,length - 1);
-                retval=readGenericStreamable(in, loader);
-                break;
+                DataInput in=new ByteArrayDataInputStream(buffer,offset,length);
+                return readGenericStreamable(in, loader);
             case TYPE_SERIALIZABLE: // the object is Externalizable or Serializable
-                InputStream in_stream=new ByteArrayInputStream(buffer,offset + 1,length - 1);
-                in=new ObjectInputStreamWithClassloader(in_stream, loader);
-                try {
-                    retval=((ObjectInputStream)in).readObject();
+                InputStream in_stream=new ByteArrayInputStream(buffer,offset,length);
+                try(ObjectInputStream oin=new ObjectInputStreamWithClassloader(in_stream, loader)) {
+                    return oin.readObject();
                 }
-                finally {
-                    Util.close((Closeable)in);
-                }
-                break;
-            case TYPE_BOOLEAN:
-                return ByteBuffer.wrap(buffer,offset + 1,length - 1).get() == 1;
-            case TYPE_BYTE:
-                return ByteBuffer.wrap(buffer,offset + 1,length - 1).get();
-            case TYPE_CHAR:
-                return ByteBuffer.wrap(buffer,offset + 1,length - 1).getChar();
-            case TYPE_DOUBLE:
-                return ByteBuffer.wrap(buffer,offset + 1,length - 1).getDouble();
-            case TYPE_FLOAT:
-                return ByteBuffer.wrap(buffer,offset + 1,length - 1).getFloat();
-            case TYPE_INT:
-                return ByteBuffer.wrap(buffer,offset + 1,length - 1).getInt();
-            case TYPE_LONG:
-                return ByteBuffer.wrap(buffer,offset + 1,length - 1).getLong();
-            case TYPE_SHORT:
-                return ByteBuffer.wrap(buffer,offset + 1,length - 1).getShort();
-            case TYPE_STRING:
-                return new String(buffer,offset + 1,length - 1);
+            case TYPE_BOOLEAN: return buffer[offset] == 1;
+            case TYPE_BYTE:    return buffer[offset];
+            case TYPE_CHAR:    return Bits.readChar(buffer, offset);
+            case TYPE_DOUBLE:  return Bits.readDouble(buffer, offset);
+            case TYPE_FLOAT:   return Bits.readFloat(buffer, offset);
+            case TYPE_INT:     return Bits.readInt(buffer, offset);
+            case TYPE_LONG:    return Bits.readLong(buffer, offset);
+            case TYPE_SHORT:   return Bits.readShort(buffer, offset);
+            case TYPE_STRING:  return new String(buffer,offset,length);
             case TYPE_BYTEARRAY:
-                byte[] tmp=new byte[length - 1];
-                System.arraycopy(buffer,offset + 1,tmp,0,length - 1);
+                byte[] tmp=new byte[length];
+                System.arraycopy(buffer,offset,tmp,0,length);
                 return tmp;
             default:
                 throw new IllegalArgumentException("type " + type + " is invalid");
         }
-        return retval;
     }
 
 
@@ -532,7 +518,7 @@ public class Util {
      */
     public static byte[] objectToByteBuffer(Object obj) throws Exception {
         if(obj == null)
-            return ByteBuffer.allocate(Global.BYTE_SIZE).put(TYPE_NULL).array();
+            return TYPE_NULL_ARRAY;
 
         if(obj instanceof Streamable) {
             final ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(512);
@@ -545,40 +531,48 @@ public class Util {
         if(type == null) { // will throw an exception if object is not serializable
             final ByteArrayOutputStream out_stream=new ByteArrayOutputStream(512);
             out_stream.write(TYPE_SERIALIZABLE);
-            ObjectOutputStream out=new ObjectOutputStream(out_stream);
-            try {
+            try(ObjectOutputStream out=new ObjectOutputStream(out_stream)) {
                 out.writeObject(obj);
                 out.flush();
                 return out_stream.toByteArray();
-            }
-            finally {
-                Util.close(out);
             }
         }
 
         switch(type) {
             case TYPE_BOOLEAN:
-                return ByteBuffer.allocate(Global.BYTE_SIZE * 2).put(TYPE_BOOLEAN)
-                  .put((Boolean)obj? (byte)1 : (byte)0).array();
+                return ((Boolean)obj)? TYPE_BOOLEAN_TRUE : TYPE_BOOLEAN_FALSE;
             case TYPE_BYTE:
-                return ByteBuffer.allocate(Global.BYTE_SIZE * 2).put(TYPE_BYTE).put((Byte)obj).array();
+                return new byte[]{TYPE_BYTE, (byte)obj};
             case TYPE_CHAR:
-                return ByteBuffer.allocate(Global.BYTE_SIZE * 3).put(TYPE_CHAR).putChar((Character)obj).array();
+                byte[] buf=new byte[Global.BYTE_SIZE *3];
+                buf[0]=TYPE_CHAR;
+                Bits.writeChar((char)obj, buf, 1);
+                return buf;
             case TYPE_DOUBLE:
-                return ByteBuffer.allocate(Global.BYTE_SIZE + Global.DOUBLE_SIZE).put(TYPE_DOUBLE)
-                  .putDouble((Double)obj).array();
+                buf=new byte[Global.BYTE_SIZE + Global.DOUBLE_SIZE];
+                buf[0]=TYPE_DOUBLE;
+                Bits.writeDouble((double)obj, buf, 1);
+                return buf;
             case TYPE_FLOAT:
-                return ByteBuffer.allocate(Global.BYTE_SIZE + Global.FLOAT_SIZE).put(TYPE_FLOAT)
-                  .putFloat((Float)obj).array();
+                buf=new byte[Global.BYTE_SIZE + Global.FLOAT_SIZE];
+                buf[0]=TYPE_FLOAT;
+                Bits.writeFloat((float)obj, buf, 1);
+                return buf;
             case TYPE_INT:
-                return ByteBuffer.allocate(Global.BYTE_SIZE + Global.INT_SIZE).put(TYPE_INT)
-                  .putInt((Integer)obj).array();
+                buf=new byte[Global.BYTE_SIZE + Global.INT_SIZE];
+                buf[0]=TYPE_INT;
+                Bits.writeInt((int)obj, buf, 1);
+                return buf;
             case TYPE_LONG:
-                return ByteBuffer.allocate(Global.BYTE_SIZE + Global.LONG_SIZE).put(TYPE_LONG)
-                  .putLong((Long)obj).array();
+                buf=new byte[Global.BYTE_SIZE + Global.LONG_SIZE];
+                buf[0]=TYPE_LONG;
+                Bits.writeLong((long)obj, buf, 1);
+                return buf;
             case TYPE_SHORT:
-                return ByteBuffer.allocate(Global.BYTE_SIZE + Global.SHORT_SIZE).put(TYPE_SHORT)
-                  .putShort((Short)obj).array();
+                buf=new byte[Global.BYTE_SIZE + Global.SHORT_SIZE];
+                buf[0]=TYPE_SHORT;
+                Bits.writeShort((short)obj, buf, 1);
+                return buf;
             case TYPE_STRING:
                 String str=(String)obj;
                 int len=str.length();
@@ -587,13 +581,92 @@ public class Util {
                     retval.put((byte)str.charAt(i));
                 return retval.array();
             case TYPE_BYTEARRAY:
-                byte[] buf=(byte[])obj;
-                return ByteBuffer.allocate(Global.BYTE_SIZE + buf.length).put(TYPE_BYTEARRAY)
-                  .put(buf,0,buf.length).array();
+                buf=(byte[])obj;
+                byte[] buffer=new byte[Global.BYTE_SIZE + buf.length];
+                buffer[0]=TYPE_BYTEARRAY;
+                System.arraycopy(buf, 0, buffer, 1, buf.length);
+                return buffer;
             default:
                 throw new IllegalArgumentException("type " + type + " is invalid");
         }
+    }
 
+
+    public static Buffer objectToBuffer(Object obj) throws Exception {
+        if(obj == null)
+            return new Buffer(TYPE_NULL_ARRAY);
+
+        if(obj instanceof Streamable) {
+            final ByteArrayDataOutputStream out=new ByteArrayDataOutputStream(512);
+            out.write(TYPE_STREAMABLE);
+            writeGenericStreamable((Streamable)obj,out);
+            return out.getBuffer();
+        }
+
+        Byte type=PRIMITIVE_TYPES.get(obj.getClass());
+        if(type == null) { // will throw an exception if object is not serializable
+            final ByteArrayOutputStream out_stream=new ByteArrayOutputStream(512);
+            out_stream.write(TYPE_SERIALIZABLE);
+            try(ObjectOutputStream out=new ObjectOutputStream(out_stream)) {
+                out.writeObject(obj);
+                out.flush();
+                return new Buffer(out_stream.toByteArray());
+            }
+        }
+
+        switch(type) {
+            case TYPE_BOOLEAN:
+                return new Buffer(((Boolean)obj)? TYPE_BOOLEAN_TRUE : TYPE_BOOLEAN_FALSE);
+            case TYPE_BYTE:
+                return new Buffer(new byte[]{TYPE_BYTE, (byte)obj});
+            case TYPE_CHAR:
+                byte[] buf=new byte[Global.BYTE_SIZE *3];
+                buf[0]=TYPE_CHAR;
+                Bits.writeChar((char)obj, buf, 1);
+                return new Buffer(buf);
+            case TYPE_DOUBLE:
+                buf=new byte[Global.BYTE_SIZE + Global.DOUBLE_SIZE];
+                buf[0]=TYPE_DOUBLE;
+                Bits.writeDouble((double)obj, buf, 1);
+                return new Buffer(buf);
+            case TYPE_FLOAT:
+                buf=new byte[Global.BYTE_SIZE + Global.FLOAT_SIZE];
+                buf[0]=TYPE_FLOAT;
+                Bits.writeFloat((float)obj, buf, 1);
+                return new Buffer(buf);
+            case TYPE_INT:
+                buf=new byte[Global.BYTE_SIZE + Global.INT_SIZE];
+                buf[0]=TYPE_INT;
+                Bits.writeInt((int)obj, buf, 1);
+                return new Buffer(buf);
+            case TYPE_LONG:
+                buf=new byte[Global.BYTE_SIZE + Global.LONG_SIZE];
+                buf[0]=TYPE_LONG;
+                Bits.writeLong((long)obj, buf, 1);
+                return new Buffer(buf);
+            case TYPE_SHORT:
+                buf=new byte[Global.BYTE_SIZE + Global.SHORT_SIZE];
+                buf[0]=TYPE_SHORT;
+                Bits.writeShort((short)obj, buf, 1);
+                return new Buffer(buf);
+            case TYPE_STRING:
+                String str=(String)obj;
+                int len=str.length();
+                ByteBuffer retval=ByteBuffer.allocate(Global.BYTE_SIZE + len).put(TYPE_STRING);
+                for(int i=0; i < len; i++)
+                    retval.put((byte)str.charAt(i));
+                return new Buffer(retval.array());
+            case TYPE_BYTEARRAY:
+                buf=(byte[])obj;
+                byte[] buffer=new byte[Global.BYTE_SIZE + buf.length];
+                buffer[0]=TYPE_BYTEARRAY;
+                System.arraycopy(buf, 0, buffer, 1, buf.length);
+                return new Buffer(buffer);
+                /*buf=(byte[])obj;
+                return new Buffer(buf, 1, buf.length);*/
+            default:
+                throw new IllegalArgumentException("type " + type + " is invalid");
+        }
     }
 
 
@@ -639,14 +712,10 @@ public class Util {
                     String str=(String)obj;
                     if(str.length() > Short.MAX_VALUE) {
                         out.writeBoolean(true);
-                        ObjectOutputStream oos=new ObjectOutputStream(out instanceof ByteArrayDataOutputStream?
-                                                                        new OutputStreamAdapter((ByteArrayDataOutputStream)out) :
-                                                                        (OutputStream)out);
-                        try {
+                        try(ObjectOutputStream oos=new ObjectOutputStream(out instanceof ByteArrayDataOutputStream?
+                                                                            new OutputStreamAdapter((ByteArrayDataOutputStream)out) :
+                                                                            (OutputStream)out)) {
                             oos.writeObject(str);
-                        }
-                        finally {
-                            oos.close();
                         }
                     }
                     else {
@@ -683,76 +752,43 @@ public class Util {
 
     public static Object objectFromStream(DataInput in, ClassLoader loader) throws Exception {
         if(in == null) return null;
-        Object retval=null;
         byte b=in.readByte();
 
         switch(b) {
-            case TYPE_NULL:
-                return null;
-            case TYPE_STREAMABLE:
-                retval=readGenericStreamable(in, loader);
-                break;
+            case TYPE_NULL:       return null;
+            case TYPE_STREAMABLE: return readGenericStreamable(in, loader);
             case TYPE_SERIALIZABLE: // the object is Externalizable or Serializable
                 InputStream is=in instanceof ByteArrayDataInputStream?
                   new org.jgroups.util.InputStreamAdapter((ByteArrayDataInputStream)in) : (InputStream)in;
-                ObjectInputStream tmp=new ObjectInputStreamWithClassloader(is, loader);
-                try {
-                    retval=tmp.readObject();
+                try(ObjectInputStream tmp=new ObjectInputStreamWithClassloader(is, loader)) {
+                    return tmp.readObject();
                 }
-                finally {
-                    Util.close(tmp);
-                }
-                break;
-            case TYPE_BOOLEAN:
-                retval=in.readBoolean();
-                break;
-            case TYPE_BYTE:
-                retval=in.readByte();
-                break;
-            case TYPE_CHAR:
-                retval=in.readChar();
-                break;
-            case TYPE_DOUBLE:
-                retval=in.readDouble();
-                break;
-            case TYPE_FLOAT:
-                retval=in.readFloat();
-                break;
-            case TYPE_INT:
-                retval=in.readInt();
-                break;
-            case TYPE_LONG:
-                retval=in.readLong();
-                break;
-            case TYPE_SHORT:
-                retval=in.readShort();
-                break;
+            case TYPE_BOOLEAN:    return in.readBoolean();
+            case TYPE_BYTE:       return in.readByte();
+            case TYPE_CHAR:       return in.readChar();
+            case TYPE_DOUBLE:     return in.readDouble();
+            case TYPE_FLOAT:      return in.readFloat();
+            case TYPE_INT:        return in.readInt();
+            case TYPE_LONG:       return in.readLong();
+            case TYPE_SHORT:      return in.readShort();
             case TYPE_STRING:
                 if(in.readBoolean()) { // large string
-                    ObjectInputStream ois=new ObjectInputStream(in instanceof ByteArrayDataInputStream?
-                                                                  new org.jgroups.util.InputStreamAdapter((ByteArrayDataInputStream)in) :
-                                                                  (InputStream)in);
-                    try {
-                        retval=ois.readObject();
-                    }
-                    finally {
-                        ois.close();
+                    try(ObjectInputStream ois=new ObjectInputStream(in instanceof ByteArrayDataInputStream?
+                                                                      new org.jgroups.util.InputStreamAdapter((ByteArrayDataInputStream)in) :
+                                                                      (InputStream)in)) {
+                        return ois.readObject();
                     }
                 }
-                else {
-                    retval=in.readUTF();
-                }
-                break;
+                else
+                    return in.readUTF();
             case TYPE_BYTEARRAY:
                 int len=in.readInt();
                 byte[] tmpbuf=new byte[len];
                 in.readFully(tmpbuf,0,tmpbuf.length);
-                retval=tmpbuf;
-                break;
+                return tmpbuf;
             default:
                 throw new IllegalArgumentException("type " + b + " is invalid");
         }
-        return retval;
     }
 
 
@@ -2180,6 +2216,15 @@ public class Util {
         }
         stack.init();
         return ch;
+    }
+
+    public static byte[] generateArray(int size) {
+        byte[] retval=new byte[size];
+        for(int i=0; i < retval.length; i++) {
+            byte b=(byte)Util.random(26);
+            retval[i]=b;
+        }
+        return retval;
     }
 
 

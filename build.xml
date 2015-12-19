@@ -684,8 +684,6 @@
                  initial.mcast.addr="${jgroups.udp.mcast_addr}"
                  initial.mcast.port="27000"
                  initial.tcp.port="27000"
-                 tcp.recv.buf.size="50000"
-                 tcp.send.buf.size="10000"
                  jvmarg1="-Dchannel.conf=tcp.xml"
         	jvmarg2="-Djgroups.use.jdk_logger=true"
                 />
@@ -706,8 +704,6 @@
                  initial.mcast.addr="${jgroups.udp.mcast_addr}"
                  initial.mcast.port="27000"
                  initial.tcp.port="28000"
-                 tcp.recv.buf.size="50000"
-                 tcp.send.buf.size="10000"
                  jvmarg1="-Dchannel.conf=tcp-nio.xml"
         	jvmarg2="-Djgroups.use.jdk_logger=true"
                 />
@@ -763,8 +759,8 @@
         <attribute name="initial.mcast.addr" default="${jgroups.udp.mcast_addr}"/>
         <attribute name="initial.mcast.port" default="23000"/>
         <attribute name="initial.tcp.port"   default="23000"/>
-        <attribute name="tcp.recv.buf.size"  default="200000"/>
-        <attribute name="tcp.send.buf.size"  default="64000"/>
+        <attribute name="tcp.recv.buf.size"  default="1000000"/>
+        <attribute name="tcp.send.buf.size"  default="500000"/>
         <attribute name="jvmarg1"            default="-Dnonex=1"/>
         <attribute name="jvmarg2"            default="-Dnoney=1"/>
         <attribute name="jvmarg3"            default="-Djgroups.use.jdk_logger=true"/>

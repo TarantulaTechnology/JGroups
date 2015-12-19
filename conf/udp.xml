@@ -47,16 +47,23 @@
 
     <!-- S3_PING SETTINGS
     
+    *** Default host is s3.amazonaws.com ***
     host=""
+    
     port=""
+    
+    *** Prefix requires access_key and secret_access_key ***
     prefix=""
+    
     skip_bucket_existence_check=""
+    
     use_ssl=""
     
     pre_signed_put_url="http://s3.amazonaws.com/my_bucket/DemoCluster/node1?AWSAccessKeyId=access_key&Expires=1316276200&Signature=it1cUUtgCT9ZJyCJDj2xTAcRTFg%3D"
     pre_signed_delete_url="http://s3.amazonaws.com/my_bucket/DemoCluster/node1?AWSAccessKeyId=access_key&Expires=1316276200&Signature=u4IFPRq%2FL6%2FAohykIW4QrKjR23g%3D"
     
     timeout="2000"
+    
     num_initial_members="3"
     
     access_key="access_key"

@@ -83,7 +83,7 @@ public class S3_PING2 extends FILE_PING {
     /////////////////////////////////////////////////////////////////////////////////
     
  
-    protected AWSAuthConnection conn = null;
+    protected AWSAuthConnection awsConn = null;
     
     
     /////////////////////////////////////////////////////////////////////////////////
@@ -95,24 +95,25 @@ public class S3_PING2 extends FILE_PING {
     public void init() throws Exception 
     /////////////////////////////////////////////////////////////////////////////////
     {
+     	
         super.init();
         
-        log.error( "My Log test message-error." );
-        //log.setLevel("trace");
-        log.info( "My Log test message-info." );
+        log.trace( "init" );
         
         if( host == null )
         {
             host = Utils.DEFAULT_HOST;
         }
         
+        log.trace( "host: " + host );
+        
         validateProperties();
         
-        conn = createAWSConnection();
+        awsConn = createAWSConnection();
 
         if( prefix != null && !prefix.isEmpty() ) 
         {
-            ListAllMyBucketsResponse bucket_list = conn.listAllMyBuckets(null);
+            ListAllMyBucketsResponse bucket_list = awsConn.listAllMyBuckets(null);
             
             List buckets = bucket_list.entries;
             
@@ -147,9 +148,9 @@ public class S3_PING2 extends FILE_PING {
             location = parsedPut.getBucket();
         }
 
-        if( !skip_bucket_existence_check && !conn.checkBucketExists(location) ) 
+        if( !skip_bucket_existence_check && !awsConn.checkBucketExists(location) ) 
         {
-            Response response = conn.createBucket( location, AWSAuthConnection.LOCATION_DEFAULT, null );
+            Response response = awsConn.createBucket( location, AWSAuthConnection.LOCATION_DEFAULT, null );
             String string_response = response.connection.getResponseMessage();
         }
     }
@@ -193,7 +194,7 @@ public class S3_PING2 extends FILE_PING {
 
             clustername=sanitize( clustername );
             
-            ListBucketResponse rsp = conn.listBucket( location, clustername, null, null, null );
+            ListBucketResponse rsp = awsConn.listBucket( location, clustername, null, null, null );
             
             if( rsp.entries != null ) 
             {
@@ -203,7 +204,7 @@ public class S3_PING2 extends FILE_PING {
                     
                     try 
                     {
-                        GetResponse val = conn.get( location, key.key, null );
+                        GetResponse val = awsConn.get( location, key.key, null );
                         readResponse( val, members, responses );
                     }
                     catch( Throwable t ) 
@@ -292,7 +293,7 @@ public class S3_PING2 extends FILE_PING {
                 
                 headers.put( "x-amz-acl", Arrays.asList( "public-read" ) );
                 
-                httpConn = conn.put( pre_signed_put_url, val, headers ).connection;
+                httpConn = awsConn.put( pre_signed_put_url, val, headers ).connection;
                 
             } 
             else 
@@ -301,7 +302,7 @@ public class S3_PING2 extends FILE_PING {
                 
                 headers.put( "Content-Type", Arrays.asList( "text/plain" ) );
                 
-                httpConn = conn.put( location, key, val, headers ).connection;
+                httpConn = awsConn.put( location, key, val, headers ).connection;
                 
             }
             
@@ -338,11 +339,11 @@ public class S3_PING2 extends FILE_PING {
             
             if ( usingPreSignedUrls() ) 
             {
-                conn.delete( pre_signed_delete_url ).connection.getResponseMessage();
+                awsConn.delete( pre_signed_delete_url ).connection.getResponseMessage();
             } 
             else 
             {
-                conn.delete( location, key, headers ).connection.getResponseMessage();
+                awsConn.delete( location, key, headers ).connection.getResponseMessage();
             }
             
             if( log.isTraceEnabled() )
@@ -374,7 +375,7 @@ public class S3_PING2 extends FILE_PING {
             
             clustername=sanitize( clustername );
             
-            ListBucketResponse rsp = conn.listBucket( location, clustername, null, null, null );
+            ListBucketResponse rsp = awsConn.listBucket( location, clustername, null, null, null );
             
             if( rsp.entries != null) 
             {
@@ -386,11 +387,11 @@ public class S3_PING2 extends FILE_PING {
                     {
                         if ( usingPreSignedUrls() )
                         {
-                            conn.delete( pre_signed_delete_url ).connection.getResponseMessage();
+                            awsConn.delete( pre_signed_delete_url ).connection.getResponseMessage();
                         }
                         else
                         {
-                            conn.delete( location, key.key, headers ).connection.getResponseMessage();
+                            awsConn.delete( location, key.key, headers ).connection.getResponseMessage();
                         }
                         
                         log.trace( "removing %s/%s", location, key.key );
@@ -414,9 +415,16 @@ public class S3_PING2 extends FILE_PING {
     {
         if ( pre_signed_put_url != null && pre_signed_delete_url != null ) 
         {
+     	
             PreSignedUrlParser parsedPut = new PreSignedUrlParser( pre_signed_put_url );
             
+            log.trace( "pre_signed_put_url" );
+
+            
             PreSignedUrlParser parsedDelete = new PreSignedUrlParser( pre_signed_delete_url );
+            
+            log.trace( "pre_signed_delete_url" );
+
             
             if (!parsedPut.getBucket().equals( parsedDelete.getBucket() ) 
             		||
