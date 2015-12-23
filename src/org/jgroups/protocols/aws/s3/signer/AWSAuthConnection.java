@@ -23,6 +23,8 @@ import org.jgroups.protocols.aws.s3.Response;
 import org.jgroups.protocols.aws.s3.S3Object;
 import org.jgroups.protocols.aws.s3.Utils;
 
+import org.jgroups.logging.Log;
+import org.jgroups.logging.LogFactory;
 
 public class AWSAuthConnection {
     public static final String LOCATION_DEFAULT=null;
@@ -34,6 +36,8 @@ public class AWSAuthConnection {
     private String server;
     private int port;
     private CallingFormat callingFormat;
+    
+    protected final Log log=LogFactory.getLog(this.getClass());
 
     public AWSAuthConnection(String awsAccessKeyId, String awsSecretAccessKey) {
         this(awsAccessKeyId, awsSecretAccessKey, true);
@@ -43,23 +47,16 @@ public class AWSAuthConnection {
         this(awsAccessKeyId, awsSecretAccessKey, isSecure, Utils.DEFAULT_HOST);
     }
 
-    public AWSAuthConnection(String awsAccessKeyId, String awsSecretAccessKey, boolean isSecure,
-                             String server) {
-        this(awsAccessKeyId, awsSecretAccessKey, isSecure, server,
-             isSecure? Utils.SECURE_PORT : Utils.INSECURE_PORT);
+    public AWSAuthConnection(String awsAccessKeyId, String awsSecretAccessKey, boolean isSecure, String server) {
+        this(awsAccessKeyId, awsSecretAccessKey, isSecure, server, isSecure? Utils.SECURE_PORT : Utils.INSECURE_PORT);
     }
 
-    public AWSAuthConnection(String awsAccessKeyId, String awsSecretAccessKey, boolean isSecure,
-                             String server, int port) {
+    public AWSAuthConnection(String awsAccessKeyId, String awsSecretAccessKey, boolean isSecure, String server, int port) {
         this(awsAccessKeyId, awsSecretAccessKey, isSecure, server, port, CallingFormat.getSubdomainCallingFormat());
-
     }
 
-    public AWSAuthConnection(String awsAccessKeyId, String awsSecretAccessKey, boolean isSecure,
-                             String server, CallingFormat format) {
-        this(awsAccessKeyId, awsSecretAccessKey, isSecure, server,
-             isSecure? Utils.SECURE_PORT : Utils.INSECURE_PORT,
-             format);
+    public AWSAuthConnection(String awsAccessKeyId, String awsSecretAccessKey, boolean isSecure, String server, CallingFormat format) {
+        this(awsAccessKeyId, awsSecretAccessKey, isSecure, server, isSecure? Utils.SECURE_PORT : Utils.INSECURE_PORT, format);
     }
 
     /**
@@ -72,8 +69,19 @@ public class AWSAuthConnection {
      * @param port               Which port to use.
      * @param format             Type of request Regular/Vanity or Pure Vanity domain
      */
-    public AWSAuthConnection(String awsAccessKeyId, String awsSecretAccessKey, boolean isSecure,
-                             String server, int port, CallingFormat format) {
+    public AWSAuthConnection(String awsAccessKeyId, String awsSecretAccessKey, boolean isSecure, String server, int port, CallingFormat format) 
+    {
+    	log.trace( 
+    			"" 
+    			+ "isSecure: " + isSecure
+    			+ " "
+    			+ "server: " + server
+    			+ " "
+    			+ "port: " + port
+    			+ " "
+    			+ format
+    			);
+    	
         this.awsAccessKeyId=awsAccessKeyId;
         this.awsSecretAccessKey=awsSecretAccessKey;
         this.isSecure=isSecure;

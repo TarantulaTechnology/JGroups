@@ -47,37 +47,61 @@
 
     <!-- S3_PING SETTINGS
     
-    *** Default host is s3.amazonaws.com ***
     host=""
-    
+    *** Default host is s3.amazonaws.com ***
+    US Standard (N. Virginia or Pacific Northwest) 
+    	s3.amazonaws.com or s3-external-1.amazonaws.com
+    	For the US Standard region, the endpoints work as follows:
+			s3.amazonaws.com  
+				Amazon S3 automatically routes requests to 
+				facilities in Northern Virginia or 
+				the Pacific Northwest using network maps.
+			s3-external-1.amazonaws.com 
+				Amazon S3 routes requests to a facility in Northern Virginia. 
+				This is especially useful in a scenario where you 
+				require low-latency access to your Amazon S3 data 
+				from Amazon EC2 in the Northern Virginia region.
+    US West (Oregon) s3-us-west-2.amazonaws.com
+    US West (N. California) s3-us-west-1.amazonaws.com
+    EU (Ireland) s3-eu-west-1.amazonaws.com
+    EU (Frankfurt) s3-eu-central-1.amazonaws.com
+    Asia Pacific (Singapore) s3-ap-southeast-1.amazonaws.com
+    Asia Pacific (Sydney) s3-ap-southeast-2.amazonaws.com
+    Asia Pacific (Tokyo) s3-ap-northeast-1.amazonaws.com 
+    South America (Sao Paulo) s3-sa-east-1.amazonaws.com 
+     
     port=""
     
+    use_ssl=""
+    When using virtual hosted style buckets with SSL, 
+    the SSL wild card certificate only matches
+	buckets that do not contain periods.
+
+    skip_bucket_existence_check=""
+
     *** Prefix requires access_key and secret_access_key ***
     prefix=""
-    
-    skip_bucket_existence_check=""
-    
-    use_ssl=""
-    
-    pre_signed_put_url="http://s3.amazonaws.com/my_bucket/DemoCluster/node1?AWSAccessKeyId=access_key&Expires=1316276200&Signature=it1cUUtgCT9ZJyCJDj2xTAcRTFg%3D"
-    pre_signed_delete_url="http://s3.amazonaws.com/my_bucket/DemoCluster/node1?AWSAccessKeyId=access_key&Expires=1316276200&Signature=u4IFPRq%2FL6%2FAohykIW4QrKjR23g%3D"
-    
-    timeout="2000"
-    
-    num_initial_members="3"
     
     access_key="access_key"
     secret_access_key="secret_access_key" 
 
+    timeout="2000"
+    num_initial_members="3"
+    
+    *** Can be valid for up to seven days ***
+    pre_signed_put_url="http://s3.amazonaws.com/my_bucket/DemoCluster/node1?AWSAccessKeyId=access_key&Expires=1316276200&Signature=it1cUUtgCT9ZJyCJDj2xTAcRTFg%3D"
+    pre_signed_delete_url="http://s3.amazonaws.com/my_bucket/DemoCluster/node1?AWSAccessKeyId=access_key&Expires=1316276200&Signature=u4IFPRq%2FL6%2FAohykIW4QrKjR23g%3D"
+    
+	*** Bucket name ***
     location="us-tti-mark"
     
     region="eu-central-1" 
     
      -->
      
-    <S3_PING2 
+    <S3_PING2
     location="us-tti-mark"
-    region="eu-central-1" 
+    region="eu-central-1"
     />
     
     

@@ -326,17 +326,9 @@ public class Buffers implements Iterable<ByteBuffer> {
             }
         }
 
-<<<<<<< HEAD
-		@Override
-		public void remove() {
-			// TODO Auto-generated method stub
-			
-		}
-=======
         @Override
         public void remove() { // todo: remove when baselining on Java 8
             ;
         }
->>>>>>> upstream/master
     }
 }

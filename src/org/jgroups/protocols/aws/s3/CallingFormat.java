@@ -11,15 +11,8 @@ public abstract class CallingFormat {
     protected static CallingFormat subdomainCallingFormat=new SubdomainCallingFormat();
     protected static CallingFormat vanityCallingFormat=new VanityCallingFormat();
 
-    public abstract boolean supportsLocatedBuckets();
-
-    public abstract String getEndpoint(String server, int port, String bucket);
-
-    public abstract String getPathBase(String bucket, String key);
-
-    public abstract URL getURL(boolean isSecure, String server, int port, String bucket, String key, Map pathArgs)
-            throws MalformedURLException;
-
+    ///////////////////////////////////////////////////////////////////
+    
     public static CallingFormat getPathCallingFormat() {
         return pathCallingFormat;
     }
@@ -32,17 +25,28 @@ public abstract class CallingFormat {
         return vanityCallingFormat;
     }
 
-    private static class PathCallingFormat extends CallingFormat {
-        public boolean supportsLocatedBuckets() {
-            return false;
-        }
+    ///////////////////////////////////////////////////////////////////
+    
+    public abstract boolean supportsLocatedBuckets();
+    public abstract String getEndpoint(String server, int port, String bucket);
+    public abstract String getPathBase(String bucket, String key);
+    public abstract URL getURL(boolean isSecure, String server, int port, String bucket, String key, Map pathArgs)
+            throws MalformedURLException;
 
-        public String getPathBase(String bucket, String key) {
-            return isBucketSpecified(bucket)? "/" + bucket + "/" + key : "/";
+    ///////////////////////////////////////////////////////////////////
+    
+   private static class PathCallingFormat extends CallingFormat {
+        
+    	public boolean supportsLocatedBuckets() {
+            return false;
         }
 
         public String getEndpoint(String server, int port, String bucket) {
             return server + ":" + port;
+        }
+
+        public String getPathBase(String bucket, String key) {
+            return isBucketSpecified(bucket)? "/" + bucket + "/" + key : "/";
         }
 
         public URL getURL(boolean isSecure, String server, int port, String bucket, String key, Map pathArgs)
@@ -56,18 +60,21 @@ public abstract class CallingFormat {
             return bucket != null && bucket.length() != 0;
         }
     }
+    
+    ///////////////////////////////////////////////////////////////////
 
     private static class SubdomainCallingFormat extends CallingFormat {
+    	
         public boolean supportsLocatedBuckets() {
             return true;
         }
 
-        public String getServer(String server, String bucket) {
-            return bucket + "." + server;
-        }
-
         public String getEndpoint(String server, int port, String bucket) {
             return getServer(server, bucket) + ":" + port;
+        }
+        
+        public String getServer(String server, String bucket) {
+            return bucket + "." + server;
         }
 
         public String getPathBase(String bucket, String key) {
@@ -89,6 +96,8 @@ public abstract class CallingFormat {
             }
         }
     }
+
+    ///////////////////////////////////////////////////////////////////
 
     private static class VanityCallingFormat extends SubdomainCallingFormat {
         public String getServer(String server, String bucket) {
