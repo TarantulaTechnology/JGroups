@@ -1,4 +1,7 @@
-
+July 7, 2016
+Author - Mark Morris
+Includes suppport for Amazon AWS Authentication Version 4 via S3_PING2,
+a cloned S3_PING class modified to use Amazon AWS Version 4 Authentication.
 
 
        JGroups - A Framework for Group Communication in Java
