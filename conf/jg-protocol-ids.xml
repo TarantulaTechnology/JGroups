@@ -77,6 +77,6 @@
     <class id="530" name="org.jgroups.protocols.azure.AZURE_PING" external="true"/>
 
     <!-- User-defined protocols should use IDs > 1000 -->
-	<class id="78" name="org.jgroups.protocols.aws.s3_ping2.S3_PING2"/>
+	<class id="1078" name="org.jgroups.protocols.aws.s3_ping2.S3_PING2"/>
 	
 </protocol-ids>
