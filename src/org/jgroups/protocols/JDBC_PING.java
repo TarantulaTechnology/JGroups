@@ -79,8 +79,8 @@ public class JDBC_PING extends Discovery {
     
     @Property(description = "SQL used to fetch all node's PingData. Customizable, but keep the order of parameters and pick compatible types: " + 
                 "only one parameter needed, String compatible, representing the Cluster name. Must return a byte[], the Serialized PingData as" + 
-                " it was stored by the insert_single_sql statement")
-    protected String select_all_pingdata_sql = "SELECT ping_data FROM JGROUPSPING WHERE cluster_name=?";
+                " it was stored by the insert_single_sql statement. Must select primary keys subsequently for cleanup to work properly")
+    protected String select_all_pingdata_sql = "SELECT ping_data, own_addr, cluster_name FROM JGROUPSPING WHERE cluster_name=?";
 
     @Property(description="Finds a given entry by its address and cluster name, used to implement a contains()")
     protected String contains_sql="SELECT count(own_addr) as RECORDCOUNT from JGROUPSPING WHERE cluster_name=? AND own_addr=?";
@@ -262,8 +262,22 @@ public class JDBC_PING extends Discovery {
         }
     }
 
+	protected static final PreparedStatement prepareStatement(final Connection connection, final String sql, final int resultSetType,
+		final int resultSetConcurrency) throws SQLException {
+		try {
+			return connection.prepareStatement(sql, resultSetType, resultSetConcurrency);
+		} catch(final SQLException x) {
+			try {
+				return connection.prepareStatement(sql);
+			} catch(final SQLException x2) {
+				x.addSuppressed(x2);
+				throw x;
+			}
+		}
+	}
+
     protected void readAll(Connection connection, List<Address> members, String clustername, Responses rsps) throws SQLException {
-        try (PreparedStatement ps=connection.prepareStatement(select_all_pingdata_sql)) {
+        try (PreparedStatement ps=prepareStatement(connection, select_all_pingdata_sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ps.setString(1, clustername);
             try (ResultSet resultSet=ps.executeQuery()) {
 	            while(resultSet.next()) {
