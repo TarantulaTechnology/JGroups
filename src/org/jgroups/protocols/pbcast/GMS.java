@@ -14,7 +14,6 @@ import org.jgroups.stack.MembershipChangePolicy;
 import org.jgroups.stack.Protocol;
 import org.jgroups.util.*;
 import org.jgroups.util.Queue;
-import org.jgroups.util.UUID;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -317,7 +316,7 @@ public class GMS extends Protocol implements DiagnosticsHandler.ProbeHandler {
     public void suspect(String suspected_member) {
         if(suspected_member == null)
             return;
-        Map<Address,String> contents=UUID.getContents();
+        Map<Address,String> contents=NameCache.getContents();
         for(Map.Entry<Address,String> entry: contents.entrySet()) {
             String logical_name=entry.getValue();
             if(Objects.equals(logical_name, suspected_member)) {
@@ -1049,7 +1048,7 @@ public class GMS extends Protocol implements DiagnosticsHandler.ProbeHandler {
                             (PhysicalAddress)down(new Event(Event.GET_PHYSICAL_ADDRESS, local_addr)) : null;
                     System.out.println("\n-------------------------------------------------------------------\n" +
                             "GMS: address=" + local_addr + ", cluster=" + evt.getArg() +
-                            (physical_addr != null? ", physical address=" + physical_addr : "") +
+                            (physical_addr != null? ", physical address=" + physical_addr.printIpAddress() : "") +
                             "\n-------------------------------------------------------------------");
                 }
                 else {
@@ -1057,7 +1056,7 @@ public class GMS extends Protocol implements DiagnosticsHandler.ProbeHandler {
                         PhysicalAddress physical_addr=print_physical_addrs?
                           (PhysicalAddress)down(new Event(Event.GET_PHYSICAL_ADDRESS, local_addr)) : null;
                         log.debug("address=" + local_addr + ", cluster=" + evt.getArg() +
-                                    (physical_addr != null? ", physical address=" + physical_addr : ""));
+                                    (physical_addr != null? ", physical address=" + physical_addr.printIpAddress() : ""));
                     }
                 }
                 down_prot.down(evt);

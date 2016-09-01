@@ -233,7 +233,7 @@ public class JChannel implements Closeable {
                 throw new IllegalStateException("name cannot be set if channel is connected (should be done before)");
             this.name=name;
             if(local_addr != null)
-                UUID.add(local_addr, this.name);
+                NameCache.add(local_addr, this.name);
         }
         return this;
     }
@@ -754,6 +754,15 @@ public class JChannel implements Closeable {
             case Event.GET_LOCAL_ADDRESS:
                 return local_addr;
 
+            case Event.SET_LOCAL_ADDRESS:
+                Address tmp_addr=evt.arg();
+                if(tmp_addr != null) {
+                    this.local_addr=tmp_addr;
+                    if(name != null && !name.isEmpty())
+                        NameCache.add(local_addr, name);
+                }
+                break;
+
             default:
                 break;
         }
@@ -868,7 +877,7 @@ public class JChannel implements Closeable {
             stopStack(true, false);
             state=State.OPEN;
             init();
-            throw new Exception("connecting to channel \"" + connect_event.getArg() + "\" failed", t);
+            throw new Exception("connecting to channel " + connect_event.getArg() + " failed", t);
         }
     }
 
@@ -991,7 +1000,7 @@ public class JChannel implements Closeable {
     }
 
     /**
-     * Generates new UUID and sets local address. Sends down a REMOVE_ADDRESS (if existing address was present) and
+     * Generates and sets local_addr. Sends down a REMOVE_ADDRESS (if existing address was present) and
      * a SET_LOCAL_ADDRESS
      */
     protected JChannel setAddress() {
@@ -1002,7 +1011,7 @@ public class JChannel implements Closeable {
         if(name == null || name.isEmpty()) // generate a logical name if not set
             name=Util.generateLocalName();
         if(name != null && !name.isEmpty())
-            UUID.add(local_addr, name);
+            NameCache.add(local_addr, name);
 
         Event evt=new Event(Event.SET_LOCAL_ADDRESS, local_addr);
         down(evt);
@@ -1069,7 +1078,7 @@ public class JChannel implements Closeable {
         notifyChannelClosed(this);
         init(); // sets local_addr=null; changed March 18 2003 (bela) -- prevented successful rejoining
         if(old_addr != null)
-            UUID.remove(old_addr);
+            NameCache.remove(old_addr);
         return this;
     }
 

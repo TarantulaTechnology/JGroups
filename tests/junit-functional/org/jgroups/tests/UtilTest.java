@@ -2,6 +2,8 @@
 package org.jgroups.tests;
 
 import org.jgroups.*;
+import org.jgroups.stack.IpAddress;
+import org.jgroups.stack.IpAddressUUID;
 import org.jgroups.util.Bits;
 import org.jgroups.util.*;
 import org.testng.Assert;
@@ -615,16 +617,21 @@ public class UtilTest {
         Assert.assertEquals(s2, s4);
     }
 
-    public static void testWriteAddress() throws Exception {
+    public void testWriteAddress() throws Exception {
         Address a1=Util.createRandomAddress();
         Address a2=Util.createRandomAddress();
         Address a4=Util.createRandomAddress();
+        Address a5=new IpAddress("127.0.0.1", 5555);
+        Address a6=new IpAddressUUID("127.0.0.1", 5555);
 
         ByteArrayOutputStream outstream=new ByteArrayOutputStream();
         DataOutputStream dos=new DataOutputStream(outstream);
         Util.writeAddress(a1, dos);
         Util.writeAddress(a2, dos);
         Util.writeAddress(a4, dos);
+        Util.writeAddress(a5, dos);
+        Util.writeAddress(a6, dos);
+
         dos.close();
         byte[] buf=outstream.toByteArray();
         ByteArrayInputStream instream=new ByteArrayInputStream(buf);
@@ -633,6 +640,11 @@ public class UtilTest {
         Assert.assertEquals(a1, Util.readAddress(dis));
         Assert.assertEquals(a2, Util.readAddress(dis));
         Assert.assertEquals(a4, Util.readAddress(dis));
+
+        Address tmp=Util.readAddress(dis);
+        assert a5.equals(tmp);
+        tmp=Util.readAddress(dis);
+        assert a6.equals(tmp);
     }
 
     public static void testWriteNullAddress() throws Exception {
@@ -992,9 +1004,9 @@ public class UtilTest {
 
     public static void testDetermineMergeParticipantsAndMergeCoords() {
         Address a=Util.createRandomAddress(), b=Util.createRandomAddress(), c=Util.createRandomAddress();
-        org.jgroups.util.UUID.add(a, "A");
-        org.jgroups.util.UUID.add(b, "B");
-        org.jgroups.util.UUID.add(c, "C");
+        org.jgroups.util.NameCache.add(a, "A");
+        org.jgroups.util.NameCache.add(b, "B");
+        org.jgroups.util.NameCache.add(c, "C");
 
         View v1=View.create(b, 1, b, a, c);
         View v2=View.create(b, 2, b, c);
@@ -1021,10 +1033,10 @@ public class UtilTest {
 
     public static void testDetermineMergeParticipantsAndMergeCoords2() {
         Address a=Util.createRandomAddress(), b=Util.createRandomAddress(), c=Util.createRandomAddress(), d=Util.createRandomAddress();
-        org.jgroups.util.UUID.add(a, "A");
-        org.jgroups.util.UUID.add(b, "B");
-        org.jgroups.util.UUID.add(c, "C");
-        org.jgroups.util.UUID.add(d, "D");
+        org.jgroups.util.NameCache.add(a, "A");
+        org.jgroups.util.NameCache.add(b, "B");
+        org.jgroups.util.NameCache.add(c, "C");
+        org.jgroups.util.NameCache.add(d, "D");
 
         View v1=View.create(a, 1, a, b);
         View v2=View.create(a, 1, a, b);
@@ -1053,10 +1065,10 @@ public class UtilTest {
 
     public static void testDetermineMergeParticipantsAndMergeCoords3() {
         Address a=Util.createRandomAddress(), b=Util.createRandomAddress(), c=Util.createRandomAddress(), d=Util.createRandomAddress();
-        org.jgroups.util.UUID.add(a, "A");
-        org.jgroups.util.UUID.add(b, "B");
-        org.jgroups.util.UUID.add(c, "C");
-        org.jgroups.util.UUID.add(d, "D");
+        org.jgroups.util.NameCache.add(a, "A");
+        org.jgroups.util.NameCache.add(b, "B");
+        org.jgroups.util.NameCache.add(c, "C");
+        org.jgroups.util.NameCache.add(d, "D");
 
         View v1=View.create(a, 1, a, b, c, d);
         View v2=View.create(a, 1, a, b, c, d);
@@ -1084,10 +1096,10 @@ public class UtilTest {
 
     public static void testDetermineMergeParticipantsAndMergeCoords4() {
         Address a=Util.createRandomAddress(), b=Util.createRandomAddress(), c=Util.createRandomAddress(), d=Util.createRandomAddress();
-        org.jgroups.util.UUID.add(a, "A");
-        org.jgroups.util.UUID.add(b, "B");
-        org.jgroups.util.UUID.add(c, "C");
-        org.jgroups.util.UUID.add(d, "D");
+        org.jgroups.util.NameCache.add(a, "A");
+        org.jgroups.util.NameCache.add(b, "B");
+        org.jgroups.util.NameCache.add(c, "C");
+        org.jgroups.util.NameCache.add(d, "D");
 
         View v1=View.create(a, 1, a, b);
         View v2=View.create(c, 1, c, d);

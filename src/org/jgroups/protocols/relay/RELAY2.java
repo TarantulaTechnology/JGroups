@@ -4,6 +4,7 @@ import org.jgroups.*;
 import org.jgroups.annotations.*;
 import org.jgroups.conf.ConfiguratorFactory;
 import org.jgroups.protocols.FORWARD_TO_COORD;
+import org.jgroups.protocols.TP;
 import org.jgroups.protocols.relay.config.RelayConfig;
 import org.jgroups.stack.Protocol;
 import org.jgroups.util.*;
@@ -235,6 +236,10 @@ public class RELAY2 extends Protocol {
         timer=getTransport().getTimer();
         if(site == null)
             throw new IllegalArgumentException("site cannot be null");
+        TP tp=getTransport();
+        if(tp.getUseIpAddresses())
+            throw new IllegalArgumentException(String.format("%s cannot be used if %s.use_ip_addrs is true",
+                                                             RELAY2.class.getSimpleName(), tp.getClass().getSimpleName()));
         if(max_site_masters < 1) {
             log.warn("max_size_masters was " + max_site_masters + ", changed to 1");
             max_site_masters=1;
@@ -348,7 +353,7 @@ public class RELAY2 extends Protocol {
         SiteAddress target=(SiteAddress)dest;
         Address src=msg.getSrc();
         SiteAddress sender=src instanceof SiteMaster? new SiteMaster(((SiteMaster)src).getSite())
-          : new SiteUUID((UUID)local_addr, UUID.get(local_addr), site);
+          : new SiteUUID((UUID)local_addr, NameCache.get(local_addr), site);
         if(local_addr instanceof ExtendedUUID)
             ((ExtendedUUID)sender).addContents((ExtendedUUID)local_addr);
 
@@ -403,7 +408,7 @@ public class RELAY2 extends Protocol {
             // forward a multicast message to all bridges except myself, then pass up
             if(dest == null && is_site_master && relay_multicasts && !msg.isFlagSet(Message.Flag.NO_RELAY)) {
                 Address src=msg.getSrc();
-                Address sender=new SiteUUID((UUID)msg.getSrc(), UUID.get(msg.getSrc()), site);
+                Address sender=new SiteUUID((UUID)msg.getSrc(), NameCache.get(msg.getSrc()), site);
                 if(src instanceof ExtendedUUID)
                     ((SiteUUID)sender).addContents((ExtendedUUID)src);
                 sendToBridges(sender, msg, site);
@@ -428,7 +433,7 @@ public class RELAY2 extends Protocol {
                 // forward a multicast message to all bridges except myself, then pass up
                 if(dest == null && is_site_master && relay_multicasts && !msg.isFlagSet(Message.Flag.NO_RELAY)) {
                     Address src=msg.getSrc();
-                    Address sender=new SiteUUID((UUID)msg.getSrc(), UUID.get(msg.getSrc()), site);
+                    Address sender=new SiteUUID((UUID)msg.getSrc(), NameCache.get(msg.getSrc()), site);
                     if(src instanceof ExtendedUUID)
                         ((SiteUUID)sender).addContents((ExtendedUUID)src);
                     sendToBridges(sender, msg, site);
@@ -559,7 +564,7 @@ public class RELAY2 extends Protocol {
      */
     protected void sendSiteUnreachableTo(Address dest, String target_site) {
         Message msg=new Message(dest).setFlag(Message.Flag.OOB, Message.Flag.INTERNAL)
-          .src(new SiteUUID((UUID)local_addr, UUID.get(local_addr), site))
+          .src(new SiteUUID((UUID)local_addr, NameCache.get(local_addr), site))
           .putHeader(id,new Relay2Header(Relay2Header.SITE_UNREACHABLE,new SiteMaster(target_site),null));
         down_prot.down(msg);
     }
@@ -646,7 +651,7 @@ public class RELAY2 extends Protocol {
 
         if(become_site_master) {
             is_site_master=true;
-            final String bridge_name="_" + UUID.get(local_addr);
+            final String bridge_name="_" + NameCache.get(local_addr);
             if(relayer != null)
                 relayer.stop();
             relayer=new Relayer(this, log);

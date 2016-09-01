@@ -82,7 +82,7 @@ public class PDC extends Protocol {
                 new_map.putAll(cache);
                 return new_map;
 
-            case Event.SET_PHYSICAL_ADDRESS:
+            case Event.ADD_PHYSICAL_ADDRESS:
                 Tuple<Address,PhysicalAddress> new_val=(Tuple<Address, PhysicalAddress>)evt.getArg();
                 if(new_val != null) {
                     cache.put(new_val.getVal1(), new_val.getVal2());
@@ -154,8 +154,8 @@ public class PDC extends Protocol {
             else {
                 if(data != null && data.getLogicalAddr() != null && data.getPhysicalAddr() != null) {
                     cache.put(data.getLogicalAddr(), (PhysicalAddress)data.getPhysicalAddr());
-                    if(data.getLogicalName() != null && UUID.get(data.getLogicalAddr()) == null)
-                        UUID.add(data.getLogicalAddr(), data.getLogicalName());
+                    if(data.getLogicalName() != null && NameCache.get(data.getLogicalAddr()) == null)
+                        NameCache.add(data.getLogicalAddr(), data.getLogicalName());
                 }
             }
         }
@@ -186,7 +186,7 @@ public class PDC extends Protocol {
         // this is because the writing can be very slow under some circumstances
         File tmpFile=null, destination=null;
         try {
-            tmpFile=writeToTempFile(root_dir, logical_addr, physical_addr, UUID.get(logical_addr));
+            tmpFile=writeToTempFile(root_dir, logical_addr, physical_addr, NameCache.get(logical_addr));
             if(tmpFile == null)
                 return;
 
