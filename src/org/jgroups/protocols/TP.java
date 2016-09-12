@@ -6,6 +6,7 @@ import org.jgroups.annotations.*;
 import org.jgroups.blocks.LazyRemovalCache;
 import org.jgroups.conf.ClassConfigurator;
 import org.jgroups.conf.PropertyConverters;
+import org.jgroups.logging.Log;
 import org.jgroups.logging.LogFactory;
 import org.jgroups.stack.DiagnosticsHandler;
 import org.jgroups.stack.IpAddress;
@@ -136,6 +137,12 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
       "\"l\": includes the local address of the current member, e.g. \"192.168.5.1:5678\"")
     protected String thread_naming_pattern="cl";
 
+    @Property(name="thread_pool.use_fork_join_pool",description="If enabled, a ForkJoinPool will be used rather than a ThreadPoolExecutor")
+    protected boolean use_fork_join_pool;
+
+    @Property(name="thread_pool.use_common_fork_join_pool",
+      description="If true, the common fork-join pool will be used; otherwise a custom ForkJoinPool will be created")
+    protected boolean use_common_fork_join_pool;
 
     @Property(name="thread_pool.enabled",description="Enable or disable the thread pool")
     protected boolean thread_pool_enabled=true;
@@ -144,7 +151,7 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
     protected int thread_pool_min_threads=0;
 
     @Property(name="thread_pool.max_threads",description="Maximum thread pool size for the thread pool")
-    protected int thread_pool_max_threads=20;
+    protected int thread_pool_max_threads=use_fork_join_pool? Runtime.getRuntime().availableProcessors() : 20;
 
     @Property(name="thread_pool.keep_alive_time",description="Timeout in milliseconds to remove idle threads from pool")
     protected long thread_pool_keep_alive_time=30000;
@@ -440,6 +447,8 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
     /** Factory which is used by the thread pool */
     protected ThreadFactory           thread_factory;
 
+    protected Executor                internal_pool; // only created if thread_pool is enabled, to handle internal msgs
+
     // ================================== Timer thread pool  =========================
     protected TimeScheduler           timer;
 
@@ -663,14 +672,29 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
     }
 
 
-    @ManagedAttribute(description="Current number of threads in the default thread pool")
+    @ManagedAttribute(description="Current number of threads in the thread pool")
     public int getThreadPoolSize() {
-        return thread_pool instanceof ThreadPoolExecutor? ((ThreadPoolExecutor)thread_pool).getPoolSize() : 0;
+        if(thread_pool instanceof ThreadPoolExecutor)
+            return ((ThreadPoolExecutor)thread_pool).getPoolSize();
+        if(thread_pool instanceof ForkJoinPool)
+            return ((ForkJoinPool)thread_pool).getPoolSize();
+        return 0;
     }
 
-    @ManagedAttribute(description="Current number of active threads in the default thread pool")
+    @ManagedAttribute(description="Current number of threads in the internal thread pool")
+    public int getInternalThreadPoolSize() {
+        if(internal_pool instanceof ThreadPoolExecutor)
+            return ((ThreadPoolExecutor)internal_pool).getPoolSize();
+        return 0;
+    }
+
+    @ManagedAttribute(description="Current number of active threads in the thread pool")
     public int getThreadPoolSizeActive() {
-        return thread_pool instanceof ThreadPoolExecutor? ((ThreadPoolExecutor)thread_pool).getActiveCount() : 0;
+        if(thread_pool instanceof ThreadPoolExecutor)
+            return ((ThreadPoolExecutor)thread_pool).getActiveCount();
+        if(thread_pool instanceof ForkJoinPool)
+            return ((ForkJoinPool)thread_pool).getRunningThreadCount();
+        return 0;
     }
 
     public long getRegularMessages() {
@@ -782,11 +806,13 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
 
 
         // ====================================== Thread pool ===========================
-
-        if(thread_pool == null || (thread_pool instanceof ThreadPoolExecutor && ((ThreadPoolExecutor)thread_pool).isShutdown())) {
+        if(use_common_fork_join_pool)
+            use_fork_join_pool=true;
+        if(thread_pool == null || (thread_pool instanceof ExecutorService && ((ExecutorService)thread_pool).isShutdown())) {
             if(thread_pool_enabled) {
                 thread_pool=createThreadPool(thread_pool_min_threads, thread_pool_max_threads, thread_pool_keep_alive_time,
-                                             "abort", new SynchronousQueue<>(), thread_factory);
+                                             "abort", new SynchronousQueue<>(), thread_factory, log, use_fork_join_pool, use_common_fork_join_pool);
+                internal_pool=createThreadPool(0, 8, 30000, "abort", new SynchronousQueue<>(), thread_factory, log, false, false);
             }
             else // otherwise use the caller's thread to unmarshal the byte buffer into a message
                 thread_pool=new DirectExecutor();
@@ -841,7 +867,7 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
             time_service.stop();
 
         // Stop the thread pool
-        if(thread_pool instanceof ThreadPoolExecutor)
+        if(thread_pool instanceof ExecutorService)
             shutdownThreadPool(thread_pool);
 
         if(timer != null)
@@ -1282,25 +1308,35 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
     }
 
     public void submitToThreadPool(Runnable task, boolean spawn_thread_on_rejection) {
+        submitToThreadPool(thread_pool, task, spawn_thread_on_rejection, true);
+    }
+
+    public void submitToThreadPool(Executor pool, Runnable task, boolean spawn_thread_on_rejection, boolean forward_to_internal_pool) {
         try {
-            thread_pool.execute(task);
+            pool.execute(task);
         }
         catch(RejectedExecutionException ex) {
-            if(spawn_thread_on_rejection) {
+            if(!spawn_thread_on_rejection) {
+                num_rejected_msgs++;
+                return;
+            }
+
+            if(forward_to_internal_pool && internal_pool != null) {
+                submitToThreadPool(internal_pool, task, true, false);
+            }
+            else {
                 num_threads_spawned++;
                 runInNewThread(task);
             }
-            else
-                num_rejected_msgs++;
         }
         catch(Throwable t) {
             log.error("failure submitting task to thread pool", t);
         }
     }
 
+
     protected void runInNewThread(Runnable task) {
-        Thread thread=thread_factory != null?
-          thread_factory.newThread(task, "jgroups-temp-thread")
+        Thread thread=thread_factory != null? thread_factory.newThread(task, "jgroups-temp-thread")
           : new Thread(task, "jgroups-temp-thread");
         thread.start();
     }
@@ -1387,8 +1423,9 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
     protected void send(Message msg, Address dest) throws Exception {
         // bundle all messages, even the ones tagged with DONT_BUNDLE: https://issues.jboss.org/browse/JGRP-1737
         boolean bypass_bundling=msg.isFlagSet(Message.Flag.DONT_BUNDLE); //  && dest instanceof PhysicalAddress;
-        if(!bypass_bundling) {
-            bundler.send(msg);
+        Bundler tmp_bundler;
+        if(!bypass_bundling && (tmp_bundler=bundler) != null) {
+            tmp_bundler.send(msg);
             return;
         }
 
@@ -1689,7 +1726,18 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
 
 
     protected static ExecutorService createThreadPool(int min_threads, int max_threads, long keep_alive_time, String rejection_policy,
-                                                      BlockingQueue<Runnable> queue, final ThreadFactory factory) {
+                                                      BlockingQueue<Runnable> queue, final ThreadFactory factory, Log log,
+                                                      boolean use_fork_join_pool, boolean use_common_fork_join_pool) {
+        if(use_fork_join_pool) {
+            if(use_common_fork_join_pool)
+                return ForkJoinPool.commonPool();
+
+            int num_cores=Runtime.getRuntime().availableProcessors();
+            if(max_threads > num_cores)
+                log.warn("max_threads (%d) is higher than available cores (%d)", max_threads, num_cores);
+            return new ForkJoinPool(max_threads, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
+        }
+
 
         ThreadPoolExecutor pool=new ThreadPoolExecutor(min_threads, max_threads, keep_alive_time, TimeUnit.MILLISECONDS, queue);
         pool.setThreadFactory(factory);
@@ -1710,8 +1758,6 @@ public abstract class TP extends Protocol implements DiagnosticsHandler.ProbeHan
             }
         }
     }
-
-
 
 
     protected boolean addPhysicalAddressToCache(Address logical_addr, PhysicalAddress physical_addr) {
