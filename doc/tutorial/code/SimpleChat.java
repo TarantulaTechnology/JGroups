@@ -61,10 +61,6 @@ public class SimpleChat extends ReceiverAdapter {
                     break;
                 }
                 line="[" + user_name + "] " + line;
-<<<<<<< HEAD
-                //-mm- bad constructor -- Message msg=new Message(null, null, line);
-=======
->>>>>>> upstream/master
                 Message msg=new Message(null, line);
                 channel.send(msg);
             }
